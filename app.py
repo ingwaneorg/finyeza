@@ -10,7 +10,7 @@ import hmac
 app = Flask(__name__)
 
 # Initialize Firestore client
-db = firestore.Client()
+db = firestore.Client(database='finyeza')
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
