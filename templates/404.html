@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Not Found - URL Forwarder{% endblock %}
+{% block content %}
+    <div class="section">
+        <h1>🔍 Short URL Not Found</h1>
+        <div class="row-gap"></div>
+        <p>The short URL <strong>{{ shortcode or 'requested' }}</strong> doesn't exist.</p>
+        <div class="row-gap"></div>
+        <p class="time-message">Please check the URL and try again.</p>
+    </div>
+{% endblock %}
