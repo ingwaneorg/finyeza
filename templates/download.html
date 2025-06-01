@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Download Starting - URL Forwarder{% endblock %}
+{% block content %}
+    <div class="section">
+        <h1>📦 Download Starting</h1>
+        <div class="row-gap"></div>
+        <p>Your download will start shortly...</p>
+        <div class="row-gap"></div>
+        <p class="time-message">If the download doesn't start automatically, 
+        <a href="{{ destination }}" target="_blank">click here</a>.</p>
+    </div>
+    
+    <script>
+        // Redirect to download after a short delay
+        setTimeout(function() {
+            window.location.href = "{{ destination }}";
+        }, 1000);
+    </script>
+{% endblock %}
