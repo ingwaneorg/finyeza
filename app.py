@@ -49,7 +49,7 @@ def create_short_url():
     if not data:
         return jsonify({'error': 'JSON data required'}), 400
     
-    shortcode = data.get('shortcode', '').strip()
+    shortcode = data.get('shortcode', '').strip().lower()
     destination = data.get('destination', '').strip()
     
     if not shortcode or not destination:
@@ -154,6 +154,9 @@ def list_urls():
 @app.route('/<shortcode>')
 def redirect_url(shortcode):
     """Redirect to destination URL and track click"""
+    # Normalize shortcode to lowercase for lookup
+    shortcode = shortcode.lower()
+    
     doc_ref = db.collection('urls').document(shortcode)
     doc = doc_ref.get()
     
