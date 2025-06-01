@@ -1,4 +1,6 @@
-# This project
+# this project
+logs/*
+*.json
 bin/*
 
 # Byte-compiled / optimized / DLL files
