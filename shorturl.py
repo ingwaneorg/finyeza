@@ -26,13 +26,13 @@ def create_url(shortcode, destination):
     
     # Validate shortcode format (letters, numbers, hyphens only)
     if not all(c.isalnum() or c == '-' for c in shortcode):
-        print("❌ Error: Shortcode can only contain letters, numbers, and hyphens")
+        print(f"ERROR: Shortcode can only contain letters, numbers, and hyphens")
         return
     
     # Check if shortcode already exists
     doc_ref = db.collection('urls').document(shortcode)
     if doc_ref.get().exists:
-        print(f"❌ Error: Shortcode '{shortcode}' already exists")
+        print(f"ERROR: Shortcode '{shortcode}' already exists")
         return
     
     # Create new URL record (disabled by default)
@@ -45,13 +45,13 @@ def create_url(shortcode, destination):
     
     try:
         doc_ref.set(url_data)
-        print(f"✅ Created shortcode '{shortcode}'")
+        print(f"OK Created shortcode '{shortcode}'")
         print(f"   Destination: {destination}")
         print(f"   Status: Disabled (use 'enable {shortcode}' to activate)")
         print(f"   URL: https://go.ingwane.com/{shortcode}")
         
     except Exception as e:
-        print(f"❌ Error creating shortcode: {e}")
+        print(f"ERROR creating shortcode: {e}")
 
 def enable_url(shortcode):
     """Enable a short URL"""
@@ -60,15 +60,15 @@ def enable_url(shortcode):
     doc = doc_ref.get()
     
     if not doc.exists:
-        print(f"❌ Error: Shortcode '{shortcode}' not found")
+        print(f"ERROR: Shortcode '{shortcode}' not found")
         return
     
     try:
         doc_ref.update({'enabled': True})
-        print(f"✅ Enabled shortcode '{shortcode}'")
+        print(f"OK Enabled shortcode '{shortcode}'")
         print(f"   URL: https://go.ingwane.com/{shortcode}")
     except Exception as e:
-        print(f"❌ Error enabling shortcode: {e}")
+        print(f"ERROR enabling shortcode: {e}")
 
 def disable_url(shortcode):
     """Disable a short URL"""
@@ -77,14 +77,14 @@ def disable_url(shortcode):
     doc = doc_ref.get()
     
     if not doc.exists:
-        print(f"❌ Error: Shortcode '{shortcode}' not found")
+        print(f"ERROR: Shortcode '{shortcode}' not found")
         return
     
     try:
         doc_ref.update({'enabled': False})
-        print(f"✅ Disabled shortcode '{shortcode}'")
+        print(f"OK Disabled shortcode '{shortcode}'")
     except Exception as e:
-        print(f"❌ Error disabling shortcode: {e}")
+        print(f"ERROR disabling shortcode: {e}")
 
 def get_stats(shortcode):
     """Get statistics for a short URL"""
@@ -93,14 +93,14 @@ def get_stats(shortcode):
     doc = doc_ref.get()
     
     if not doc.exists:
-        print(f"❌ Error: Shortcode '{shortcode}' not found")
+        print(f"ERROR: Shortcode '{shortcode}' not found")
         return
     
     data = doc.to_dict()
-    status = "🟢 Enabled" if data.get('enabled', False) else "🔴 Disabled"
-    zip_indicator = "📦 Zip file" if is_zip_file(data['destination']) else "🔗 Link"
+    status = "[ON] " if data.get('enabled', False) else "[OFF]"
+    zip_indicator = "[ZIP]" if is_zip_file(data['destination']) else "[LINK]"
     
-    print(f"📊 Stats for '{shortcode}':")
+    print(f"STATS for '{shortcode}':")
     print(f"   Status: {status}")
     print(f"   Type: {zip_indicator}")
     print(f"   Destination: {data['destination']}")
@@ -125,24 +125,24 @@ def list_urls():
             })
         
         if not urls:
-            print("📝 No URLs found")
+            print("FOUND No URLs found")
             return
         
-        print(f"📝 Found {len(urls)} shortcode(s):")
+        print(f"FOUND {len(urls)} shortcode(s):")
         print()
         
         for url in urls:
-            status = "🟢" if url['enabled'] else "🔴"
-            zip_indicator = "📦" if is_zip_file(url['destination']) else "🔗"
+            status = "[ON] " if url['enabled'] else "[OFF]"
+            zip_indicator = "[ZIP]" if is_zip_file(url['destination']) else "[LINK]"
             created = url['created'].strftime('%Y-%m-%d')
             
-            print(f"{status} {zip_indicator} {url['shortcode']}")
+            print(f"{status}{zip_indicator} {url['shortcode']}")
             print(f"   {url['destination']}")
             print(f"   Created: {created} | Clicks: {url['clicks']}")
             print()
             
     except Exception as e:
-        print(f"❌ Error listing URLs: {e}")
+        print(f"ERROR listing URLs: {e}")
 
 def disable_all():
     """Disable all currently enabled URLs"""
@@ -153,15 +153,15 @@ def disable_all():
         for doc in docs:
             doc.reference.update({'enabled': False})
             disabled_count += 1
-            print(f"✅ Disabled {doc.id}")
+            print(f"OK Disabled {doc.id}")
         
         if disabled_count == 0:
-            print("📝 No enabled URLs found")
+            print("FOUND No enabled URLs found")
         else:
-            print(f"✅ Disabled {disabled_count} shortcode(s)")
+            print(f"OK Disabled {disabled_count} shortcode(s)")
             
     except Exception as e:
-        print(f"❌ Error disabling URLs: {e}")
+        print(f"ERROR disabling URLs: {e}")
 
 def show_help():
     """Show help message"""
