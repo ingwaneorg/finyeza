@@ -4,8 +4,13 @@ import os
 import logging
 from datetime import datetime
 
+# Get the version number
+from version import __version__
+
+
 # Initialize Flask app
 app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', 'fallback-for-development')
 
 # Initialize Firestore client
 db = firestore.Client(database='finyeza')
@@ -14,19 +19,13 @@ db = firestore.Client(database='finyeza')
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Check if URL points to a zip file
 def is_zip_file(url):
-    """Check if URL points to a zip file"""
     return url.lower().endswith('.zip')
 
-def get_client_ip():
-    """Get client IP address, handling proxies"""
-    if request.headers.get('X-Forwarded-For'):
-        return request.headers.get('X-Forwarded-For').split(',')[0].strip()
-    return request.remote_addr
-
+# Redirect to destination URL
 @app.route('/<shortcode>')
 def redirect_url(shortcode):
-    """Redirect to destination URL and track click"""
     # Normalize shortcode to lowercase for lookup
     shortcode = shortcode.lower()
     
@@ -59,10 +58,9 @@ def redirect_url(shortcode):
     # Regular redirect
     return redirect(destination, code=302)
 
-@app.route('/health')
-def health_check():
-    """Simple health check endpoint"""
-    return jsonify({'status': 'healthy', 'service': 'finyeza-url-forwarder'})
+@app.route('/version')
+def version():
+    return __version__, 200
 
 @app.errorhandler(404)
 def not_found(error):
