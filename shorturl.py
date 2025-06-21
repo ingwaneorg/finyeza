@@ -1,164 +1,190 @@
-
 """
 Command line tool for managing short URLs
 Usage:
     python shorturl.py create <shortcode> <destination>
-    python shorturl.py stats <shortcode>
+    python shorturl.py enable <shortcode>
+    python shorturl.py disable <shortcode>
     python shorturl.py list
+    python shorturl.py stats <shortcode>
 """
 
-import requests
 import sys
 import os
-import json
 from datetime import datetime
+from google.cloud import firestore
 
-# Configuration
-API_BASE_URL = "https://go.ingwane.com/api"  # Update when deployed
-LOCAL_URL = "http://localhost:8080/api"      # For local testing
-API_KEY = os.environ.get('API_KEY')
+# Initialize Firestore client
+db = firestore.Client(database='finyeza')
 
-def get_api_url():
-    """Get API URL based on environment"""
-    if os.environ.get('LOCAL_DEV'):
-        return LOCAL_URL
-    return API_BASE_URL
-
-def make_request(method, endpoint, data=None):
-    """Make API request with authentication"""
-    if not API_KEY:
-        print("Error: API_KEY environment variable not set")
-        sys.exit(1)
-    
-    url = f"{get_api_url()}{endpoint}"
-    headers = {
-        'X-API-Key': API_KEY,
-        'Content-Type': 'application/json'
-    }
-    
-    try:
-        if method == 'GET':
-            response = requests.get(url, headers=headers)
-        elif method == 'POST':
-            response = requests.post(url, headers=headers, json=data)
-        else:
-            raise ValueError(f"Unsupported method: {method}")
-        
-        return response
-    except requests.exceptions.ConnectionError:
-        print(f"Error: Could not connect to {url}")
-        print("Make sure the service is running and accessible")
-        sys.exit(1)
-    except requests.exceptions.RequestException as e:
-        print(f"Error making request: {e}")
-        sys.exit(1)
+def is_zip_file(url):
+    """Check if URL points to a zip file"""
+    return url.lower().endswith('.zip')
 
 def create_url(shortcode, destination):
     """Create a new short URL"""
-    data = {
-        'shortcode': shortcode,
-        'destination': destination
+    shortcode = shortcode.lower()
+    
+    # Validate shortcode format (letters, numbers, hyphens only)
+    if not all(c.isalnum() or c == '-' for c in shortcode):
+        print("❌ Error: Shortcode can only contain letters, numbers, and hyphens")
+        return
+    
+    # Check if shortcode already exists
+    doc_ref = db.collection('urls').document(shortcode)
+    if doc_ref.get().exists:
+        print(f"❌ Error: Shortcode '{shortcode}' already exists")
+        return
+    
+    # Create new URL record (disabled by default)
+    url_data = {
+        'destination': destination,
+        'created': datetime.utcnow(),
+        'enabled': False,
+        'clicks': 0
     }
     
-    response = make_request('POST', '/create', data)
+    try:
+        doc_ref.set(url_data)
+        print(f"✅ Created shortcode '{shortcode}'")
+        print(f"   Destination: {destination}")
+        print(f"   Status: Disabled (use 'enable {shortcode}' to activate)")
+        print(f"   URL: https://go.ingwane.com/{shortcode}")
+        
+    except Exception as e:
+        print(f"❌ Error creating shortcode: {e}")
+
+def enable_url(shortcode):
+    """Enable a short URL"""
+    shortcode = shortcode.lower()
+    doc_ref = db.collection('urls').document(shortcode)
+    doc = doc_ref.get()
     
-    if response.status_code == 201:
-        result = response.json()
-        print(f"✅ Created successfully!")
-        print(f"Short URL: {result['short_url']}")
-        print(f"Destination: {result['destination']}")
-        print(f"Created: {result['created']}")
-    elif response.status_code == 409:
-        print(f"❌ Error: Shortcode '{shortcode}' already exists")
-    elif response.status_code == 401:
-        print("❌ Error: Invalid API key")
-    else:
-        try:
-            error = response.json().get('error', 'Unknown error')
-            print(f"❌ Error: {error}")
-        except:
-            print(f"❌ Error: HTTP {response.status_code}")
+    if not doc.exists:
+        print(f"❌ Error: Shortcode '{shortcode}' not found")
+        return
+    
+    try:
+        doc_ref.update({'enabled': True})
+        print(f"✅ Enabled shortcode '{shortcode}'")
+        print(f"   URL: https://go.ingwane.com/{shortcode}")
+    except Exception as e:
+        print(f"❌ Error enabling shortcode: {e}")
+
+def disable_url(shortcode):
+    """Disable a short URL"""
+    shortcode = shortcode.lower()
+    doc_ref = db.collection('urls').document(shortcode)
+    doc = doc_ref.get()
+    
+    if not doc.exists:
+        print(f"❌ Error: Shortcode '{shortcode}' not found")
+        return
+    
+    try:
+        doc_ref.update({'enabled': False})
+        print(f"✅ Disabled shortcode '{shortcode}'")
+    except Exception as e:
+        print(f"❌ Error disabling shortcode: {e}")
 
 def get_stats(shortcode):
     """Get statistics for a short URL"""
-    response = make_request('GET', f'/stats/{shortcode}')
+    shortcode = shortcode.lower()
+    doc_ref = db.collection('urls').document(shortcode)
+    doc = doc_ref.get()
     
-    if response.status_code == 200:
-        data = response.json()
-        print(f"📊 Stats for '{shortcode}':")
-        print(f"Destination: {data['destination']}")
-        print(f"Total clicks: {data['total_clicks']}")
-        print(f"Created: {data['created']}")
-        print(f"Is zip file: {'Yes' if data['is_zip'] else 'No'}")
-        
-        if data['recent_clicks']:
-            print(f"\n🕒 Recent clicks ({len(data['recent_clicks'])}):")
-            for click in data['recent_clicks'][:10]:  # Show last 10
-                timestamp = datetime.fromisoformat(click['timestamp'].replace('Z', '+00:00'))
-                print(f"  {timestamp.strftime('%Y-%m-%d %H:%M:%S')} - {click['ip']}")
-        else:
-            print("\n🕒 No clicks yet")
-            
-    elif response.status_code == 404:
+    if not doc.exists:
         print(f"❌ Error: Shortcode '{shortcode}' not found")
-    elif response.status_code == 401:
-        print("❌ Error: Invalid API key")
-    else:
-        try:
-            error = response.json().get('error', 'Unknown error')
-            print(f"❌ Error: {error}")
-        except:
-            print(f"❌ Error: HTTP {response.status_code}")
+        return
+    
+    data = doc.to_dict()
+    status = "🟢 Enabled" if data.get('enabled', False) else "🔴 Disabled"
+    zip_indicator = "📦 Zip file" if is_zip_file(data['destination']) else "🔗 Link"
+    
+    print(f"📊 Stats for '{shortcode}':")
+    print(f"   Status: {status}")
+    print(f"   Type: {zip_indicator}")
+    print(f"   Destination: {data['destination']}")
+    print(f"   Total clicks: {data.get('clicks', 0)}")
+    print(f"   Created: {data['created'].strftime('%Y-%m-%d %H:%M')}")
+    print(f"   URL: https://go.ingwane.com/{shortcode}")
 
 def list_urls():
     """List all short URLs"""
-    response = make_request('GET', '/list')
-    
-    if response.status_code == 200:
-        data = response.json()
-        urls = data['urls']
+    try:
+        docs = db.collection('urls').order_by('created', direction=firestore.Query.DESCENDING).stream()
+        
+        urls = []
+        for doc in docs:
+            data = doc.to_dict()
+            urls.append({
+                'shortcode': doc.id,
+                'destination': data['destination'],
+                'enabled': data.get('enabled', False),
+                'clicks': data.get('clicks', 0),
+                'created': data['created']
+            })
         
         if not urls:
             print("📝 No URLs found")
             return
         
-        print(f"📝 Found {len(urls)} URL(s):")
+        print(f"📝 Found {len(urls)} shortcode(s):")
         print()
         
         for url in urls:
-            created = datetime.fromisoformat(url['created']).strftime('%Y-%m-%d')
-            zip_indicator = "📦" if url['is_zip'] else "🔗"
-            print(f"{zip_indicator} {url['shortcode']} -> {url['destination']}")
+            status = "🟢" if url['enabled'] else "🔴"
+            zip_indicator = "📦" if is_zip_file(url['destination']) else "🔗"
+            created = url['created'].strftime('%Y-%m-%d')
+            
+            print(f"{status} {zip_indicator} {url['shortcode']}")
+            print(f"   {url['destination']}")
             print(f"   Created: {created} | Clicks: {url['clicks']}")
             print()
             
-    elif response.status_code == 401:
-        print("❌ Error: Invalid API key")
-    else:
-        try:
-            error = response.json().get('error', 'Unknown error')
-            print(f"❌ Error: {error}")
-        except:
-            print(f"❌ Error: HTTP {response.status_code}")
+    except Exception as e:
+        print(f"❌ Error listing URLs: {e}")
+
+def disable_all():
+    """Disable all currently enabled URLs"""
+    try:
+        docs = db.collection('urls').where('enabled', '==', True).stream()
+        
+        disabled_count = 0
+        for doc in docs:
+            doc.reference.update({'enabled': False})
+            disabled_count += 1
+            print(f"✅ Disabled {doc.id}")
+        
+        if disabled_count == 0:
+            print("📝 No enabled URLs found")
+        else:
+            print(f"✅ Disabled {disabled_count} shortcode(s)")
+            
+    except Exception as e:
+        print(f"❌ Error disabling URLs: {e}")
 
 def show_help():
     """Show help message"""
-    print("URL Forwarder CLI Tool")
+    print("Finyeza URL Forwarder CLI Tool")
     print()
     print("Usage:")
     print("  python shorturl.py create <shortcode> <destination>")
+    print("  python shorturl.py enable <shortcode>")
+    print("  python shorturl.py disable <shortcode>")
+    print("  python shorturl.py disable-all")
     print("  python shorturl.py stats <shortcode>")
     print("  python shorturl.py list")
     print("  python shorturl.py help")
     print()
     print("Examples:")
-    print("  python shorturl.py create project-files https://example.com/files.zip")
-    print("  python shorturl.py stats project-files")
-    print("  python shorturl.py list")
+    print("  python shorturl.py create de5m2 https://storage.googleapis.com/.../module2.zip")
+    print("  python shorturl.py enable de5m2")
+    print("  python shorturl.py disable de5m2")
+    print("  python shorturl.py stats de5m2")
     print()
-    print("Environment variables:")
-    print("  API_KEY      - Your API key (required)")
-    print("  LOCAL_DEV    - Set to use localhost:8080 for testing")
+    print("Weekly workflow:")
+    print("  Sunday:  python shorturl.py enable de5m2")
+    print("  Friday:  python shorturl.py disable de5m2")
 
 def main():
     """Main CLI entry point"""
@@ -173,6 +199,21 @@ def main():
             print("Usage: python shorturl.py create <shortcode> <destination>")
             sys.exit(1)
         create_url(sys.argv[2], sys.argv[3])
+        
+    elif command == 'enable':
+        if len(sys.argv) != 3:
+            print("Usage: python shorturl.py enable <shortcode>")
+            sys.exit(1)
+        enable_url(sys.argv[2])
+        
+    elif command == 'disable':
+        if len(sys.argv) != 3:
+            print("Usage: python shorturl.py disable <shortcode>")
+            sys.exit(1)
+        disable_url(sys.argv[2])
+        
+    elif command == 'disable-all':
+        disable_all()
         
     elif command == 'stats':
         if len(sys.argv) != 3:
