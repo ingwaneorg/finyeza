@@ -79,6 +79,23 @@ fi
 
 print_success "Authentication successful, project verified"
 
+# Check if required APIs are enabled
+print_status "Checking required APIs..."
+
+required_apis=("cloudbuild.googleapis.com" "run.googleapis.com" "artifactregistry.googleapis.com")
+
+for api in "${required_apis[@]}"; do
+    if gcloud services list --enabled --filter="name:$api" --format="value(name)" | grep -q "${api}"; then
+        print_success "${api} is enabled"
+    else
+        print_error "${api} is not enabled"
+        print_error "Enable it with: gcloud services enable $api --project=${PROJECT_ID}"
+        exit 1
+    fi
+done
+
+print_success "Required API's are enabled"
+
 # Deploy to Cloud Run
 print_status "Deploying '$SERVICE_NAME' to Cloud Run..."
 
