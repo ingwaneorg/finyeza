@@ -12,8 +12,11 @@ from version import __version__
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'fallback-for-development')
 
+# Determine database based on environment
+DATABASE_NAME = os.environ.get('FIRESTORE_DB', 'finyeza')  # defaults to prod
+
 # Initialize Firestore client
-db = firestore.Client(database='finyeza')
+db = firestore.Client(database=DATABASE_NAME)
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -71,4 +74,6 @@ def internal_error(error):
     return jsonify({'error': 'Internal server error'}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
+    port = int(os.environ.get('PORT', 8080))
+    debug = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
+    app.run(host='0.0.0.0', port=port, debug=debug)

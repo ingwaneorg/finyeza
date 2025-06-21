@@ -17,8 +17,11 @@ from google.cloud.firestore_v1 import FieldFilter
 # List of reserved words that can't be shortcodes
 RESERVED_WORDS = ['version']
 
+# Determine database based on environment
+DATABASE_NAME = os.environ.get('FIRESTORE_DB', 'finyeza')  # defaults to prod
+
 # Initialize Firestore client
-db = firestore.Client(database='finyeza')
+db = firestore.Client(database=DATABASE_NAME)
 
 # Check if URL points to a zip file
 def is_zip_file(url):
@@ -147,6 +150,9 @@ def list_urls():
                 'created': data['created'],
                 'updated': data['updated'],
             })
+
+        # Print database name
+        print(f'Database: {DATABASE_NAME}')
         
         if not urls:
             print("FOUND No URLs found")
@@ -156,7 +162,6 @@ def list_urls():
         urls.sort(key=lambda x: x['updated'], reverse=True)
         # Second: sort by enabled status (enabled first) - stable sort preserves the time ordering within groups
         urls.sort(key=lambda x: not x['enabled'])
-        print(urls)
 
         print(f"FOUND {len(urls)} shortcode(s):")
         print()
