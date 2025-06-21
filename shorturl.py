@@ -2,6 +2,7 @@
 Command line tool for managing short URLs
 Usage:
     python shorturl.py create <shortcode> <destination>
+    python shorturl.py update <shortcode> <destination>
     python shorturl.py enable <shortcode>
     python shorturl.py disable <shortcode>
     python shorturl.py list
@@ -70,6 +71,39 @@ def create_url(shortcode, destination):
         
     except Exception as e:
         print(f"ERROR creating shortcode: {e}")
+
+# Update a short URL
+def update_url(shortcode, destination):
+    shortcode = shortcode.lower()
+
+    doc_ref = db.collection('urls').document(shortcode)
+    doc = doc_ref.get()
+    
+    if not doc.exists:
+        print(f"ERROR: Shortcode '{shortcode}' not found")
+        return
+
+    # Don't update is destination is the same as existing
+    if destination == doc.to_dict()['destination']:
+        print(f"NO UPDATE: Destination is the same")
+        return
+
+    # Destination must start with http or https
+    if not destination.startswith(('http://', 'https://')):
+        print(f"ERROR: Destination URL must start with http:// or https://")
+        return
+
+    try:
+        doc_ref.update({
+            'destination': destination,
+            'enabled': False,
+            'updated': datetime.now(timezone.utc),
+        })
+        print(f"OK Updated shortcode '{shortcode}'")
+        print(f"   Status: Disabled (use 'enable {shortcode}' to activate)")
+        print(f"   URL: https://go.ingwane.org/{shortcode}")
+    except Exception as e:
+        print(f"ERROR updating shortcode: {e}")
 
 # Enable a short URL
 def enable_url(shortcode):
@@ -207,6 +241,7 @@ def show_help():
     print()
     print("Usage:")
     print("  python shorturl.py create <shortcode> <destination>")
+    print("  python shorturl.py update <shortcode> <destination>")
     print("  python shorturl.py enable <shortcode>")
     print("  python shorturl.py disable <shortcode>")
     print("  python shorturl.py disable-all")
@@ -215,7 +250,8 @@ def show_help():
     print("  python shorturl.py help")
     print()
     print("Examples:")
-    print("  python shorturl.py create de5m2 https://storage.googleapis.com/.../module2.zip")
+    print("  python shorturl.py create de5m2 https://example.com/module2.zip")
+    print("  python shorturl.py update de5m2 https://example.com/course-material")
     print("  python shorturl.py enable de5m2")
     print("  python shorturl.py disable de5m2")
     print("  python shorturl.py stats de5m2")
@@ -237,6 +273,12 @@ def main():
             print("Usage: python shorturl.py create <shortcode> <destination>")
             sys.exit(1)
         create_url(sys.argv[2], sys.argv[3])
+        
+    elif command == 'update':
+        if len(sys.argv) != 4:
+            print("Usage: python shorturl.py update <shortcode> <destination>")
+            sys.exit(1)
+        update_url(sys.argv[2], sys.argv[3])
         
     elif command == 'enable':
         if len(sys.argv) != 3:
