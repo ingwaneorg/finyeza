@@ -66,7 +66,7 @@ def create_url(shortcode, destination):
         print(f"OK Created shortcode '{shortcode}'")
         print(f"   Destination: {destination}")
         print(f"   Status: Disabled (use 'enable {shortcode}' to activate)")
-        print(f"   URL: https://go.ingwane.com/{shortcode}")
+        print(f"   URL: https://go.ingwane.org/{shortcode}")
         
     except Exception as e:
         print(f"ERROR creating shortcode: {e}")
@@ -88,7 +88,7 @@ def enable_url(shortcode):
             'updated': datetime.now(timezone.utc),
         })
         print(f"OK Enabled shortcode '{shortcode}'")
-        print(f"   URL: https://go.ingwane.com/{shortcode}")
+        print(f"   URL: https://go.ingwane.org/{shortcode}")
     except Exception as e:
         print(f"ERROR enabling shortcode: {e}")
 
@@ -132,7 +132,7 @@ def get_stats(shortcode):
     print(f"   Total clicks: {data.get('clicks', 0)}")
     print(f"   Created: {data['created'].strftime('%Y-%m-%d %H:%M')}")
     print(f"   Updated: {data['updated'].strftime('%Y-%m-%d %H:%M')}")
-    print(f"   URL: https://go.ingwane.com/{shortcode}")
+    print(f"   URL: https://go.ingwane.org/{shortcode}")
 
 # List all short URLs
 def list_urls():
