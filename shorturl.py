@@ -10,7 +10,7 @@ Usage:
 
 import sys
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from google.cloud import firestore
 
 # Initialize Firestore client
@@ -38,7 +38,7 @@ def create_url(shortcode, destination):
     # Create new URL record (disabled by default)
     url_data = {
         'destination': destination,
-        'created': datetime.utcnow(),
+        'created': datetime.now(timezone.utc),
         'enabled': False,
         'clicks': 0
     }
