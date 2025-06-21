@@ -53,6 +53,7 @@ def create_url(shortcode, destination):
     url_data = {
         'destination': destination,
         'created': datetime.now(timezone.utc),
+        'updated': datetime.now(timezone.utc),
         'enabled': False,
         'clicks': 0
     }
@@ -70,6 +71,7 @@ def create_url(shortcode, destination):
 # Enable a short URL
 def enable_url(shortcode):
     shortcode = shortcode.lower()
+
     doc_ref = db.collection('urls').document(shortcode)
     doc = doc_ref.get()
     
@@ -78,7 +80,10 @@ def enable_url(shortcode):
         return
     
     try:
-        doc_ref.update({'enabled': True})
+        doc_ref.update({
+            'enabled': True,
+            'updated': datetime.now(timezone.utc),
+        })
         print(f"OK Enabled shortcode '{shortcode}'")
         print(f"   URL: https://go.ingwane.com/{shortcode}")
     except Exception as e:
@@ -95,7 +100,10 @@ def disable_url(shortcode):
         return
     
     try:
-        doc_ref.update({'enabled': False})
+        doc_ref.update({
+            'enabled': False,
+            'updated': datetime.now(timezone.utc),
+        })
         print(f"OK Disabled shortcode '{shortcode}'")
     except Exception as e:
         print(f"ERROR disabling shortcode: {e}")
@@ -111,7 +119,7 @@ def get_stats(shortcode):
         return
     
     data = doc.to_dict()
-    status = "[ON] " if data.get('enabled', False) else "[OFF]"
+    status = "[ON]" if data.get('enabled', False) else "[OFF]"
     zip_indicator = "[ZIP]" if is_zip_file(data['destination']) else "[LINK]"
     
     print(f"STATS for '{shortcode}':")
@@ -120,13 +128,14 @@ def get_stats(shortcode):
     print(f"   Destination: {data['destination']}")
     print(f"   Total clicks: {data.get('clicks', 0)}")
     print(f"   Created: {data['created'].strftime('%Y-%m-%d %H:%M')}")
+    print(f"   Updated: {data['updated'].strftime('%Y-%m-%d %H:%M')}")
     print(f"   URL: https://go.ingwane.com/{shortcode}")
 
 # List all short URLs
 def list_urls():
     try:
-        docs = db.collection('urls').order_by('created', direction=firestore.Query.DESCENDING).stream()
-        
+        docs = db.collection('urls').stream()  # no need to sort as this is done below
+
         urls = []
         for doc in docs:
             data = doc.to_dict()
@@ -135,24 +144,31 @@ def list_urls():
                 'destination': data['destination'],
                 'enabled': data.get('enabled', False),
                 'clicks': data.get('clicks', 0),
-                'created': data['created']
+                'created': data['created'],
+                'updated': data['updated'],
             })
         
         if not urls:
             print("FOUND No URLs found")
             return
         
+        # First: sort by updated date (newest first)
+        urls.sort(key=lambda x: x['updated'], reverse=True)
+        # Second: sort by enabled status (enabled first) - stable sort preserves the time ordering within groups
+        urls.sort(key=lambda x: not x['enabled'])
+        print(urls)
+
         print(f"FOUND {len(urls)} shortcode(s):")
         print()
         
         for url in urls:
-            status = "[ON]" if url['enabled'] else "[OFF]"
+            status = "[ON] " if url['enabled'] else "[OFF]"
             zip_indicator = "[ZIP]" if is_zip_file(url['destination']) else "[LINK]"
-            created = url['created'].strftime('%Y-%m-%d')
+            updated = url['updated'].strftime('%Y-%m-%d %H:%M')
             
             print(f"{status}{zip_indicator} {url['shortcode']}")
             print(f"   {url['destination']}")
-            print(f"   Created: {created} | Clicks: {url['clicks']}")
+            print(f"   Updated: {updated} | Clicks: {url['clicks']}")
             print()
             
     except Exception as e:
@@ -165,7 +181,10 @@ def disable_all():
 
         disabled_count = 0
         for doc in docs:
-            doc.reference.update({'enabled': False})
+            doc.reference.update({
+                'enabled': False,
+                'updated': datetime.now(timezone.utc),
+            })
             disabled_count += 1
             print(f"OK Disabled {doc.id}")
         
