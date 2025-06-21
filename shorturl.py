@@ -12,16 +12,20 @@ import sys
 import os
 from datetime import datetime, timezone
 from google.cloud import firestore
+from google.cloud.firestore_v1 import FieldFilter
+
+# List of reserved words that can't be shortcodes
+RESERVED_WORDS = ['version']
 
 # Initialize Firestore client
 db = firestore.Client(database='finyeza')
 
+# Check if URL points to a zip file
 def is_zip_file(url):
-    """Check if URL points to a zip file"""
     return url.lower().endswith('.zip')
 
+# Create a new short URL
 def create_url(shortcode, destination):
-    """Create a new short URL"""
     shortcode = shortcode.lower()
     
     # Validate shortcode format (letters, numbers, hyphens only)
@@ -29,12 +33,22 @@ def create_url(shortcode, destination):
         print(f"ERROR: Shortcode can only contain letters, numbers, and hyphens")
         return
     
+    # Don't allow reserved words
+    if shortcode in RESERVED_WORDS:
+        print(f"ERROR: Shortcode '{shortcode}' is a reserved word")
+        return
+
     # Check if shortcode already exists
     doc_ref = db.collection('urls').document(shortcode)
     if doc_ref.get().exists:
         print(f"ERROR: Shortcode '{shortcode}' already exists")
         return
-    
+
+    # Destination must start with http or https
+    if not destination.startswith(('http://', 'https://')):
+        print(f"ERROR: Destination URL must start with http:// or https://")
+        return
+
     # Create new URL record (disabled by default)
     url_data = {
         'destination': destination,
@@ -53,8 +67,8 @@ def create_url(shortcode, destination):
     except Exception as e:
         print(f"ERROR creating shortcode: {e}")
 
+# Enable a short URL
 def enable_url(shortcode):
-    """Enable a short URL"""
     shortcode = shortcode.lower()
     doc_ref = db.collection('urls').document(shortcode)
     doc = doc_ref.get()
@@ -70,8 +84,8 @@ def enable_url(shortcode):
     except Exception as e:
         print(f"ERROR enabling shortcode: {e}")
 
+# Disable a short URL
 def disable_url(shortcode):
-    """Disable a short URL"""
     shortcode = shortcode.lower()
     doc_ref = db.collection('urls').document(shortcode)
     doc = doc_ref.get()
@@ -86,8 +100,8 @@ def disable_url(shortcode):
     except Exception as e:
         print(f"ERROR disabling shortcode: {e}")
 
+# Get statistics for a short URL
 def get_stats(shortcode):
-    """Get statistics for a short URL"""
     shortcode = shortcode.lower()
     doc_ref = db.collection('urls').document(shortcode)
     doc = doc_ref.get()
@@ -108,8 +122,8 @@ def get_stats(shortcode):
     print(f"   Created: {data['created'].strftime('%Y-%m-%d %H:%M')}")
     print(f"   URL: https://go.ingwane.com/{shortcode}")
 
+# List all short URLs
 def list_urls():
-    """List all short URLs"""
     try:
         docs = db.collection('urls').order_by('created', direction=firestore.Query.DESCENDING).stream()
         
@@ -132,7 +146,7 @@ def list_urls():
         print()
         
         for url in urls:
-            status = "[ON] " if url['enabled'] else "[OFF]"
+            status = "[ON]" if url['enabled'] else "[OFF]"
             zip_indicator = "[ZIP]" if is_zip_file(url['destination']) else "[LINK]"
             created = url['created'].strftime('%Y-%m-%d')
             
@@ -144,11 +158,11 @@ def list_urls():
     except Exception as e:
         print(f"ERROR listing URLs: {e}")
 
+# Disable all currently enabled URLs
 def disable_all():
-    """Disable all currently enabled URLs"""
     try:
-        docs = db.collection('urls').where('enabled', '==', True).stream()
-        
+        docs = db.collection('urls').where(filter=FieldFilter('enabled', '==', True)).stream()
+
         disabled_count = 0
         for doc in docs:
             doc.reference.update({'enabled': False})
@@ -163,8 +177,8 @@ def disable_all():
     except Exception as e:
         print(f"ERROR disabling URLs: {e}")
 
+# Show help message
 def show_help():
-    """Show help message"""
     print("Finyeza URL Forwarder CLI Tool")
     print()
     print("Usage:")
@@ -186,8 +200,8 @@ def show_help():
     print("  Sunday:  python shorturl.py enable de5m2")
     print("  Friday:  python shorturl.py disable de5m2")
 
+# Main CLI entry point
 def main():
-    """Main CLI entry point"""
     if len(sys.argv) < 2:
         show_help()
         sys.exit(1)
