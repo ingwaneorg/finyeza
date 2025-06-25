@@ -18,6 +18,9 @@ from google.cloud.firestore_v1 import FieldFilter
 # List of reserved words that can't be shortcodes
 RESERVED_WORDS = ['version']
 
+# Determine deployment URL
+BASE_URL = os.environ.get('BASE_URL', 'localhost:8080')
+
 # Determine database based on environment
 DATABASE_NAME = os.environ.get('FIRESTORE_DB', 'finyeza')  # defaults to prod
 
@@ -35,6 +38,16 @@ def create_url(shortcode, destination):
     # Validate shortcode format (letters, numbers, hyphens only)
     if not all(c.isalnum() or c == '-' for c in shortcode):
         print(f"❌ Shortcode can only contain letters, numbers, and hyphens")
+        return
+    
+    # Shortcode cannot start with a hyphen
+    if shortcode[0] == '-':
+        print(f"❌ Shortcode cannot start with a hyphen")
+        return
+    
+    # Shortcode must be less than 50 characters
+    if len(shortcode) > 50:
+        print(f"❌ Shortcode must be less than 50 characters")
         return
     
     # Don't allow reserved words
@@ -67,7 +80,7 @@ def create_url(shortcode, destination):
         print(f"✅ Created shortcode '{shortcode}'")
         print(f"   Destination: {destination}")
         print(f"   Status: Disabled (use 'enable {shortcode}' to activate)")
-        print(f"   URL: https://go.ingwane.org/{shortcode}")
+        print(f"   URL: {BASE_URL}/{shortcode}")
         
     except Exception as e:
         print(f"❌ ERROR creating shortcode: {e}")
@@ -101,7 +114,7 @@ def update_url(shortcode, destination):
         })
         print(f"✅ Updated shortcode '{shortcode}'")
         print(f"   Status: Disabled (use 'enable {shortcode}' to activate)")
-        print(f"   URL: https://go.ingwane.org/{shortcode}")
+        print(f"   URL: {BASE_URL}/{shortcode}")
     except Exception as e:
         print(f"❌ ERROR updating shortcode: {e}")
 
@@ -122,7 +135,7 @@ def enable_url(shortcode):
             'updated': datetime.now(timezone.utc),
         })
         print(f"✅ Enabled shortcode '{shortcode}'")
-        print(f"   URL: https://go.ingwane.org/{shortcode}")
+        print(f"   URL: {BASE_URL}/{shortcode}")
     except Exception as e:
         print(f"❌ ERROR enabling shortcode: {e}")
 
@@ -166,7 +179,7 @@ def get_stats(shortcode):
     print(f"   Total clicks: {data.get('clicks', 0)}")
     print(f"   Created: {data['created'].strftime('%Y-%m-%d %H:%M')}")
     print(f"   Updated: {data['updated'].strftime('%Y-%m-%d %H:%M')}")
-    print(f"   URL: https://go.ingwane.org/{shortcode}")
+    print(f"   URL: {BASE_URL}/{shortcode}")
 
 # List all short URLs
 def list_urls():
