@@ -98,7 +98,7 @@ def update_url(shortcode, destination):
 
     # Don't update is destination is the same as existing
     if destination == doc.to_dict()['destination']:
-        print(f"🟠 Destination is the same")
+        print(f"🔶 Destination is the same")
         return
 
     # Destination must start with http or https
