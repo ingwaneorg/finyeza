@@ -2,8 +2,7 @@
 logs/*
 *.json
 last_deployment_url.txt
-bin/dev.sh
-bin/prod.sh
+bin/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
