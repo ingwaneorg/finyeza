@@ -238,7 +238,7 @@ def disable_all():
                 'updated': datetime.now(timezone.utc),
             })
             disabled_count += 1
-            print(f"✅ Disabled {doc.id}")
+            print(f"🔴 Disabled {doc.id}")
         
         if disabled_count == 0:
             print("🔍 No enabled URLs found")
