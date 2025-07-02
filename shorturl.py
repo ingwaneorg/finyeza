@@ -205,10 +205,10 @@ def list_urls():
             print("🔍 No URLs found")
             return
         
-        # First: sort by updated date (newest first)
-        urls.sort(key=lambda x: x['updated'], reverse=True)
-        # Second: sort by enabled status (enabled first) - stable sort preserves the time ordering within groups
-        urls.sort(key=lambda x: not x['enabled'])
+        # First: sort by updated date (newest last)
+        urls.sort(key=lambda x: x['updated'])
+        # Second: sort by enabled status (enabled last) - stable sort preserves the time ordering within groups
+        urls.sort(key=lambda x: not x['enabled'], reverse=True)
 
         print(f"🔍 Found {len(urls)} shortcode(s):")
         print()
