@@ -3,6 +3,7 @@
 A simple, secure URL shortener designed for educational file distribution. Built with Flask and Google Cloud Firestore.
 
 ## Features
+
 - 🔗 Custom short URLs with enable/disable functionality
 - 📦 Download pages for zip files
 - 📊 Basic click tracking
@@ -13,6 +14,7 @@ A simple, secure URL shortener designed for educational file distribution. Built
 ## Use Case
 
 Perfect for educators who need to:
+
 - Share course files with short, memorable URLs
 - Control access timing (enable on Sunday, disable on Friday)
 - Avoid giving permanent access to cloud storage URLs
@@ -21,11 +23,13 @@ Perfect for educators who need to:
 ## Quick Start
 
 ### Prerequisites
+
 - Google Cloud project with Firestore enabled
 - Service account with appropriate permissions
 - Python 3.11+ with virtual environment
 
 ### Local Development
+
 ```bash
 # Set up environment
 python -m venv venv
@@ -42,6 +46,7 @@ python app.py
 ```
 
 ### Deploy to Google Cloud Run
+
 ```bash
 # Configure for production
 export SECRET_KEY="your-flask-secret-key"
@@ -51,6 +56,7 @@ export SECRET_KEY="your-flask-secret-key"
 ```
 
 ## Project Structure
+
 ```
 finyeza/
 ├── app.py                # Main Flask application
@@ -92,6 +98,7 @@ python shorturl.py disable-all
 ### Weekly Workflow
 
 **Start of term:**
+
 ```bash
 # Create all module shortcuts once
 python shorturl.py create test1 https://example.com/test1
@@ -100,6 +107,7 @@ python shorturl.py create test3 https://example.com/test3
 ```
 
 **Each week:**
+
 ```bash
 # Sunday night - enable current week
 python shorturl.py enable test1
@@ -110,7 +118,9 @@ python shorturl.py disable test1
 ```
 
 ### Student Access
+
 Students simply visit `https://your-domain.com/test1` and either:
+
 - Get redirected to download page (for zip files)
 - Get redirected directly (for other links)
 - See "Link Not Available" message (if disabled)
@@ -118,17 +128,19 @@ Students simply visit `https://your-domain.com/test1` and either:
 ## Environment Variables
 
 ### Development
+
 - `FIRESTORE_DB` - Database name (default: `finyeza`, dev: `finyeza-dev`)
 - `FLASK_DEBUG` - Enable debug mode (`true`/`false`)
 - `GOOGLE_APPLICATION_CREDENTIALS` - Path to service account key
 
 ### Production
+
 - `SECRET_KEY` - Flask secret key (for deployment)
 - `PORT` - Server port (default: 8080)
 
 ## Database Structure
 
-```
+```none
 Firestore Collection: urls/
 ├── {shortcode}/
 │   ├── destination: "https://..."
@@ -171,16 +183,18 @@ Simple and efficient - no complex subcollections or detailed tracking.
 ## Development vs Production
 
 **Development:**
+
 ```bash
 export FIRESTORE_DB="finyeza-dev"
 export FLASK_DEBUG="true"
-python shorturl.py create test123 https://example.com/test.zip
+finyeza create test123 https://example.com/test.zip
 ```
 
 **Production:**
+
 ```bash
 # No env vars = production defaults
-python shorturl.py create test https://example.com/test
+finyyeza shorturl.py create test https://example.com/test
 ```
 
 ---
