@@ -19,7 +19,7 @@ from google.cloud.firestore_v1 import FieldFilter
 RESERVED_WORDS = ['version']
 
 # Determine deployment URL
-BASE_URL = os.environ.get('BASE_URL', 'localhost:8080')
+BASE_URL = os.environ.get('BASE_URL', 'localhost:8000')
 
 # Determine database based on environment
 DATABASE_NAME = os.environ.get('FIRESTORE_DB', 'finyeza')  # defaults to prod
@@ -221,6 +221,8 @@ def list_urls():
             print(f"{status}{zip_indicator} {url['shortcode']}")
             print(f"   {url['destination']}")
             print(f"   Updated: {updated} | Clicks: {url['clicks']}")
+            if url['enabled']:
+                print(f"   URL: {BASE_URL}/{url['shortcode']}")
             print()
             
     except Exception as e:
